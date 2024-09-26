@@ -6,9 +6,14 @@ on:
       - '*'
     tags:
       - '*'
+  workflow_run:
+    workflows: [ "Git Workflow Test PyPI Publish" ]
+    types:
+      - completed
 
 jobs:
   docker-build-for-tag:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Docker Build and Push Tag
     runs-on: ubuntu-latest
     env:
