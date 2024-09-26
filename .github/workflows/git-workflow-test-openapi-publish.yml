@@ -5,7 +5,7 @@ on:
     tags:
       - "*"
   workflow_run:
-    workflows: [ "Bridge API PyPI Publish" ]
+    workflows: [ "Git Workflow Test PyPI Publish" ]
     types:
       - completed
   workflow_dispatch:
