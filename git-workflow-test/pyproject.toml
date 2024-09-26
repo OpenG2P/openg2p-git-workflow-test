@@ -24,8 +24,8 @@ dynamic = ["version"]
 [project.urls]
 Homepage = "https://openg2p.org"
 Documentation = "https://docs.openg2p.org/"
-Repository = ""
-Source = ""
+Repository = "https://github.com/OpenG2P/openg2p-git-workflow-test"
+Source = "https://github.com/OpenG2P/openg2p-git-workflow-test"
 
 [tool.hatch.version]
 path = "src/git_workflow_test/__init__.py"
