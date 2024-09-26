@@ -17,7 +17,7 @@ jobs:
     - name: Install build dependencies
       run: pip install build
     - name: Build distribution
-      run: python -m build
+      run: python -m build ./git-workflow-test
     - name: Publish
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
