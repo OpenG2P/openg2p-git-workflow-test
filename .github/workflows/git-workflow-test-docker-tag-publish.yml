@@ -1,4 +1,4 @@
-name: Bridge API Docker Publish Tag Publish
+name: Git Workflow Test Docker Publish Tag Publish
 
 on:
   push:

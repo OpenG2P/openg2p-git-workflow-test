@@ -1,4 +1,4 @@
-name: Bridge API Docker Publish Branch Publish
+name: Git Workflow Test Docker Publish Branch Publish
 
 on:
   push:
