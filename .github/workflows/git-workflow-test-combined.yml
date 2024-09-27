@@ -61,7 +61,7 @@ jobs:
           node-version: '18'
       - name: Publish to stoplight
         run: |
-          npx @stoplight/cli@5 push --ci-token ${{ secrets.STOPLIGHT_PROJECT_TOKEN }} --url https://openg2p.stoplight.io --branch 1.0 --directory git-workflow-test/api-docs/generated
+          npx @stoplight/cli@5 push --ci-token ${{ secrets.STOPLIGHT_PROJECT_TOKEN }} --url https://openg2p.stoplight.io --branch ${{ env.TAG_NAME }} --directory git-workflow-test/api-docs/generated
 
 
   docker-build-for-tag:
