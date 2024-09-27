@@ -1,4 +1,4 @@
-name: Git Workflow Test Publish Combined
+name: Git Workflow Test Tag Workflow
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
 
 jobs:
   publish-to-pypi:
+    name: Publish to PyPI For Tag
     runs-on: ubuntu-latest
     steps:
     - name: Set up Python
@@ -28,7 +29,7 @@ jobs:
         packages-dir: ./git-workflow-test/dist/
 
   openapi-publish:
-    name: OpenAPI Generate and Publish
+    name: OpenAPI Generate and Publish For Tag
     needs: publish-to-pypi
     runs-on: ubuntu-latest
     steps:
@@ -65,7 +66,7 @@ jobs:
 
 
   docker-build-for-tag:
-    name: Docker Build and Push Tag
+    name: Docker Build and Push For Tag
     needs: publish-to-pypi
     runs-on: ubuntu-latest
     env:
