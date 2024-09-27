@@ -44,31 +44,22 @@ jobs:
         run: |
           python -m pip install openg2p-fastapi-common==1.0.0
           python -m pip install openg2p-fastapi-auth==1.0.0
+          python -m pip install git-workflow-test==1.0.0
       - name: Generate openapi json
         run: |
           mkdir -p git-workflow-test/api-docs/generated
           python3 git-workflow-test/main.py getOpenAPI git-workflow-test/api-docs/generated/openapi.json
-          if ! [ -z "$(git status --porcelain=v1 2>/dev/null -- git-workflow-test/api-docs/generated/openapi.json)" ]; then
-            shopt -s nocasematch
-            if [[ ${{ github.repository_owner }} == 'OpenG2P' ]]; then
-              export OPENAPI_CHANGED="true"
-              echo OPENAPI_CHANGED=$OPENAPI_CHANGED >> $GITHUB_ENV
-            fi
-          fi
       - name: Commit Changes
         uses: EndBug/add-and-commit@v7
-        if: env.OPENAPI_CHANGED == 'true'
         with:
           default_author: github_actions
           message: "Generated new openapi.json on push to ${{ github.event.inputs.git-ref }}"
           add: "git-workflow-test/api-docs/generated/openapi.json"
       - name: Setup nodejs
         uses: actions/setup-node@v4
-        if: env.OPENAPI_CHANGED == 'true'
         with:
           node-version: '18'
       - name: Publish to stoplight
-        if: env.OPENAPI_CHANGED == 'true'
         run: |
           npx @stoplight/cli@5 push --ci-token ${{ secrets.STOPLIGHT_PROJECT_TOKEN }} --url https://openg2p.stoplight.io --branch ${{ env.TAG_NAME }} --directory git-workflow-test/api-docs/generated
 
