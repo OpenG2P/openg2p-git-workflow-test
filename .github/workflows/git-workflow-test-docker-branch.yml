@@ -1,4 +1,4 @@
-name: Git Workflow Test Docker Publish Branch Publish
+name: Git Workflow Test Branch Workflow
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   docker-build-for-branch:
-    name: Docker Build and Push Branch
+    name: Docker Build and Push For Branch
     runs-on: ubuntu-latest
     env:
       NAMESPACE: ${{ secrets.docker_hub_organisation || 'openg2p' }}
