@@ -1,0 +1,129 @@
+name: Git Workflow Test Publish Combined
+
+on:
+  push:
+    tags:
+      - "*"
+    branches-ignore:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  publish-to-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.get_version.outputs.package_version }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install build dependencies
+        run: pip install build
+
+      - name: Get Package Version
+        id: get_version
+        run: |
+          cd git-workflow-test
+          VERSION=$(python setup.py --version)
+          echo "package_version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build distribution
+        run: python -m build ./git-workflow-test
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: ./git-workflow-test/dist/
+
+  openapi-publish:
+    name: OpenAPI Generate and Publish
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for package availability
+        run: sleep 30
+
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install app
+        run: |
+          VERSION=${{ needs.publish-to-pypi.outputs.package_version }}
+          python -m pip install openg2p-fastapi-common==1.0.0
+          python -m pip install openg2p-fastapi-auth==1.0.0
+
+      - name: Generate OpenAPI JSON
+        run: |
+          mkdir -p git-workflow-test/api-docs/generated
+          python3 git-workflow-test/main.py getOpenAPI git-workflow-test/api-docs/generated/openapi.json
+          if ! [ -z "$(git status --porcelain=v1 2>/dev/null -- git-workflow-test/api-docs/generated/openapi.json)" ]; then
+            echo "OPENAPI_CHANGED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Commit Changes
+        if: env.OPENAPI_CHANGED == 'true'
+        uses: EndBug/add-and-commit@v7
+        with:
+          default_author: github_actions
+          message: "Generated new openapi.json for version ${{ needs.publish-to-pypi.outputs.package_version }}"
+          add: "git-workflow-test/api-docs/generated/openapi.json"
+
+      - name: Set up Node.js
+        if: env.OPENAPI_CHANGED == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Publish to Stoplight
+        if: env.OPENAPI_CHANGED == 'true'
+        run: |
+          VERSION=${{ needs.publish-to-pypi.outputs.package_version }}
+          npx @stoplight/cli@5 push --ci-token ${{ secrets.STOPLIGHT_PROJECT_TOKEN }} --url https://openg2p.stoplight.io --branch ${VERSION} --directory git-workflow-test/api-docs/generated
+
+  docker-build:
+    name: Docker Build and Push
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    env:
+      NAMESPACE: ${{ secrets.docker_hub_organisation || 'openg2p' }}
+      SERVICE_NAME: openg2p-g2p-bridge-api
+    steps:
+      - name: Wait for package availability
+        run: sleep 30
+
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Docker Build
+        run: |
+          VERSION=${{ needs.publish-to-pypi.outputs.package_version }}
+          IMAGE_ID=$NAMESPACE/$SERVICE_NAME
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          docker build ./openg2p-g2p-bridge-api -f Dockerfile-pypi \
+            --tag $IMAGE_ID:$VERSION \
+            --build-arg BRANCH_NAME=$VERSION
+
+          if [[ -n '${{ secrets.docker_hub_token }}' && -n '${{ secrets.docker_hub_actor }}' ]]; then
+            echo "DOCKER_PUSH=true" >> $GITHUB_ENV
+          fi
+
+      - name: Docker Push
+        if: env.DOCKER_PUSH == 'true'
+        run: |
+          echo "${{ secrets.docker_hub_token }}" | docker login -u ${{ secrets.docker_hub_actor }} --password-stdin
+          docker push ${{ env.IMAGE_ID }}:${{ env.VERSION }}
