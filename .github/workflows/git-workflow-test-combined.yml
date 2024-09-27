@@ -73,8 +73,7 @@ jobs:
           npx @stoplight/cli@5 push --ci-token ${{ secrets.STOPLIGHT_PROJECT_TOKEN }} --url https://openg2p.stoplight.io --branch ${{ env.TAG_NAME }} --directory git-workflow-test/api-docs/generated
 
 
-  docker-build:
-    docker-build-for-tag:
+  docker-build-for-tag:
     name: Docker Build and Push Tag
     needs: publish-to-pypi
     runs-on: ubuntu-latest
